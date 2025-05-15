@@ -1,11 +1,11 @@
-import { getNewOrders } from "./lib/monerium.ts";
+import { getLastOrder, getNewOrders } from "./lib/monerium.ts";
 import { postToDiscordChannel } from "./lib/discord.ts";
 const chains = JSON.parse(Deno.readTextFileSync("./chains.json"));
 
-const INTERVAL = 1000 * 60 * 10; // 10 minutes
+const INTERVAL = Deno.env.get("INTERVAL") || 1000 * 60 * 10; // 10 minutes
 
 const logtime = () => {
-  return new Date().toISOString().split("T")[0];
+  return new Date().toISOString().replace("T", " ").substring(0, 19);
 };
 
 const fetchOrders = async () => {
@@ -31,13 +31,15 @@ const fetchOrders = async () => {
   }
 };
 
-function main() {
+async function main() {
   console.log(
     logtime(),
     "Starting monerium bot with interval",
     INTERVAL / 1000 / 60,
     "minutes"
   );
+  const lastOrder = await getLastOrder();
+  console.log(logtime(), "Last order", lastOrder?.meta.processedAt);
   setInterval(() => {
     fetchOrders();
   }, INTERVAL);
