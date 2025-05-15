@@ -9,10 +9,4 @@ WORKDIR /app
 # Copy your project files
 COPY . .
 
-RUN deno run \
-  --allow-read=/app/data \
-  --allow-write=/app/data \
-  --allow-net=discord.com,api.monerium.app \
-  --allow-env \
-  --no-prompt \
-  src/main.ts
+CMD ["deno", "run", "--allow-read=/app/data", "--allow-write=/app/data", "--allow-net=discord.com,api.monerium.app", "--allow-env", "--no-prompt", "src/main.ts"]
