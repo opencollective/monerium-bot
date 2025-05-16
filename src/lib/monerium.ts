@@ -60,6 +60,12 @@ export function getLastOrder(): MoneriumOrder | undefined {
     const data = JSON.parse(
       Deno.readTextFileSync(`${DATA_DIRECTORY}/monerium-orders.json`)
     );
+    if (!data.orders || data.orders.length === 0) {
+      console.error(
+        `monerium: No orders found in ${DATA_DIRECTORY}/monerium-orders.json`
+      );
+      return undefined;
+    }
     return data.orders[0];
   } catch (e) {
     console.error("monerium: Failed to get last order", e);
@@ -94,6 +100,10 @@ export async function getNewOrders(
   const lastOrder = getLastOrder();
 
   const orders = await getOrders(profileId);
+  if (!orders) {
+    console.error("monerium: couldn't load orders");
+    return [];
+  }
   const newOrders: MoneriumOrder[] = [];
   for (const order of orders) {
     if (lastOrder && order.id === lastOrder.id) {

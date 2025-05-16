@@ -21,11 +21,13 @@ or to avoid the interactive permissions granting:
 deno run \
   --allow-read=./data \
   --allow-write=./data \
-  --allow-net=discord.com,api.monerium.app \
+  --allow-net=gateway.discord.gg,gateway-us-east1-d.discord.gg,discord.com,api.monerium.app \
   --allow-env \
   --no-prompt \
   src/main.ts
 ```
+
+(yes, Deno does not support subdomains or wildcards in permissions, it's annoying. [Already reported](https://x.com/xdamman/status/1923010358559625400).)
 
 or like a cowboy:
 

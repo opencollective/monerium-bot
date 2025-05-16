@@ -9,4 +9,4 @@ WORKDIR /app
 # Copy your project files
 COPY . .
 
-CMD ["deno", "run", "--allow-read=/app/chains.json", "--allow-read=/app/data", "--allow-write=/app/data", "--allow-net=gateway.discord.gg,discord.com,api.monerium.app", "--allow-env", "--no-prompt", "src/main.ts"]
+CMD ["deno", "run", "--allow-read=/app/chains.json", "--allow-read=/app/data", "--allow-write=/app/data", "--allow-net=gateway.discord.gg,gateway-us-east1-d.discord.gg,discord.com,api.monerium.app", "--allow-env", "--no-prompt", "src/main.ts"]
