@@ -19,7 +19,7 @@ const logtime = () => {
 let lastTxHash: string | undefined;
 
 const fetchOrders = async () => {
-  const orders = await getNewOrders();
+  const orders = await getNewOrders(lastTxHash);
   if (orders.length === 0) {
     return;
   }
