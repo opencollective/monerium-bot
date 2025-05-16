@@ -20,11 +20,10 @@ let lastTxHash: string | undefined;
 
 const fetchOrders = async () => {
   const orders = await getNewOrders(lastTxHash);
+  console.log(logtime(), `Processing ${orders.length} new orders`);
   if (orders.length === 0) {
     return;
   }
-  lastTxHash = orders[0].meta.txHashes[0];
-  console.log(logtime(), `Processing ${orders.length} new orders`);
   for (const order of orders) {
     const processedAt = new Date(order.meta.processedAt);
     const now = new Date();
@@ -43,6 +42,7 @@ const fetchOrders = async () => {
     console.log(msg);
     await postToDiscordChannel(msg);
   }
+  lastTxHash = orders[0].meta.txHashes[0];
 };
 
 async function main() {
