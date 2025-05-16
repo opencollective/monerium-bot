@@ -19,8 +19,7 @@ or to avoid the interactive permissions granting:
 
 ```sh
 deno run \
-  --allow-read=./data \
-  --allow-write=./data \
+  --allow-read=./chains.json \
   --allow-net=gateway.discord.gg,gateway-us-east1-d.discord.gg,discord.com,api.monerium.app \
   --allow-env \
   --no-prompt \

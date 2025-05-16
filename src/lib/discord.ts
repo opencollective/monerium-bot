@@ -37,3 +37,15 @@ export async function postToDiscordChannel(message: string) {
   }
   await channel.send(message);
 }
+
+// Expose a function to fetch the latest message from a channel
+export async function fetchLatestMessageFromChannel(channelId: string) {
+  await readyPromise; // Ensure the client is ready
+  const channel = await client.channels.fetch(channelId);
+  if (!channel || !(channel instanceof TextChannel)) {
+    throw new Error("Channel not found or is not a text channel");
+  }
+  const messages = await channel.messages.fetch({ limit: 1 });
+  const latestMessage = messages.first();
+  return latestMessage || null;
+}

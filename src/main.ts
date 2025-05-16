@@ -1,15 +1,29 @@
-import { getLastOrder, getNewOrders } from "./lib/monerium.ts";
-import { postToDiscordChannel } from "./lib/discord.ts";
+import { getNewOrders } from "./lib/monerium.ts";
+import {
+  fetchLatestMessageFromChannel,
+  postToDiscordChannel,
+} from "./lib/discord.ts";
 const chains = JSON.parse(Deno.readTextFileSync("./chains.json"));
 
-const INTERVAL = Deno.env.get("INTERVAL") || 1000 * 60 * 10; // 10 minutes
+const INTERVAL = parseInt(Deno.env.get("INTERVAL") || "600000"); // 10 minutes
+const DISCORD_CHANNEL_ID = Deno.env.get("DISCORD_CHANNEL_ID");
+
+if (!DISCORD_CHANNEL_ID) {
+  throw new Error("DISCORD_CHANNEL_ID is not set");
+}
 
 const logtime = () => {
   return new Date().toISOString().replace("T", " ").substring(0, 19);
 };
 
+let lastTxHash: string | undefined;
+
 const fetchOrders = async () => {
   const orders = await getNewOrders();
+  if (orders.length === 0) {
+    return;
+  }
+  lastTxHash = orders[0].meta.txHashes[0];
   console.log(logtime(), `Processing ${orders.length} new orders`);
   for (const order of orders) {
     const processedAt = new Date(order.meta.processedAt);
@@ -38,8 +52,16 @@ async function main() {
     INTERVAL / 1000 / 60,
     "minutes"
   );
-  const lastOrder = await getLastOrder();
-  console.log(logtime(), "Last order", lastOrder?.meta.processedAt);
+
+  const lastMessage = await fetchLatestMessageFromChannel(DISCORD_CHANNEL_ID);
+  console.log(logtime(), "Last message", lastMessage?.content);
+  const txHash = lastMessage?.content.match(
+    /<https?:\/\/.*\/tx\/(0x[a-zA-Z0-9]+)>/
+  )?.[1];
+  if (txHash) {
+    lastTxHash = txHash;
+  }
+  console.log(logtime(), "Last tx hash", lastTxHash);
   setInterval(() => {
     fetchOrders();
   }, INTERVAL);

@@ -1,5 +1,3 @@
-const DATA_DIRECTORY = Deno.env.get("DATA_DIRECTORY") || "./data";
-
 type MoneriumOrder = {
   id: string;
   kind: string;
@@ -55,24 +53,6 @@ if (!accessToken) {
   throw new Error("monerium:Failed to get access token");
 }
 
-export function getLastOrder(): MoneriumOrder | undefined {
-  try {
-    const data = JSON.parse(
-      Deno.readTextFileSync(`${DATA_DIRECTORY}/monerium-orders.json`)
-    );
-    if (!data.orders || data.orders.length === 0) {
-      console.error(
-        `monerium: No orders found in ${DATA_DIRECTORY}/monerium-orders.json`
-      );
-      return undefined;
-    }
-    return data.orders[0];
-  } catch (e) {
-    console.error("monerium: Failed to get last order", e);
-    return undefined;
-  }
-}
-
 export async function getOrders(profileId?: string): Promise<MoneriumOrder[]> {
   const params = [
     ["profile_id", profileId || ""],
@@ -87,18 +67,19 @@ export async function getOrders(profileId?: string): Promise<MoneriumOrder[]> {
     },
   });
   const data = await response.json();
-  Deno.writeTextFileSync(
-    `${DATA_DIRECTORY}/monerium-orders.json`,
-    JSON.stringify(data, null, 2)
-  );
   return data.orders as MoneriumOrder[];
 }
 
+/**
+ * Get new orders since a given tx hash in reverse chronological order (newest first)
+ * @param sinceTxHash - The tx hash to start from (not included)
+ * @param profileId - The profile id to filter by
+ * @returns The new orders
+ */
 export async function getNewOrders(
+  sinceTxHash?: string,
   profileId?: string
 ): Promise<MoneriumOrder[]> {
-  const lastOrder = getLastOrder();
-
   const orders = await getOrders(profileId);
   if (!orders) {
     console.error("monerium: couldn't load orders");
@@ -106,7 +87,7 @@ export async function getNewOrders(
   }
   const newOrders: MoneriumOrder[] = [];
   for (const order of orders) {
-    if (lastOrder && order.id === lastOrder.id) {
+    if (sinceTxHash && order.meta.txHashes[0] === sinceTxHash) {
       break;
     }
     newOrders.push(order as MoneriumOrder);
