@@ -1,7 +1,12 @@
 // src/lib/discord.ts
 
 // Import discord.js from npm
-import { Client, GatewayIntentBits, TextChannel } from "npm:discord.js";
+import {
+  Client,
+  GatewayIntentBits,
+  TextChannel,
+  Message,
+} from "npm:discord.js";
 
 // Get the bot token and channel ID from environment variables
 const DISCORD_BOT_TOKEN = Deno.env.get("DISCORD_BOT_TOKEN");
@@ -39,13 +44,22 @@ export async function postToDiscordChannel(message: string) {
 }
 
 // Expose a function to fetch the latest message from a channel
-export async function fetchLatestMessageFromChannel(channelId: string) {
+export async function fetchLatestMessagesFromChannel(
+  channelId: string,
+  limit: number = 10
+): Promise<Message[]> {
   await readyPromise; // Ensure the client is ready
   const channel = await client.channels.fetch(channelId);
   if (!channel || !(channel instanceof TextChannel)) {
     throw new Error("Channel not found or is not a text channel");
   }
-  const messages = await channel.messages.fetch({ limit: 1 });
-  const latestMessage = messages.first();
-  return latestMessage || null;
+  const messages = await channel.messages.fetch({ limit });
+  return Array.from(messages.values()) || [];
+}
+
+export async function fetchLatestMessageFromChannel(
+  channelId: string
+): Promise<Message | null> {
+  const messages = await fetchLatestMessagesFromChannel(channelId, 1);
+  return messages[0] || null;
 }

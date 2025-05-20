@@ -1,16 +1,12 @@
 import { getNewOrders } from "./lib/monerium.ts";
 import {
-  fetchLatestMessageFromChannel,
+  fetchLatestMessagesFromChannel,
   postToDiscordChannel,
 } from "./lib/discord.ts";
 const chains = JSON.parse(Deno.readTextFileSync("./chains.json"));
 
 const INTERVAL = parseInt(Deno.env.get("INTERVAL") || "600000"); // 10 minutes
 const DISCORD_CHANNEL_ID = Deno.env.get("DISCORD_CHANNEL_ID");
-
-if (!DISCORD_CHANNEL_ID) {
-  throw new Error("DISCORD_CHANNEL_ID is not set");
-}
 
 const logtime = () => {
   return new Date().toISOString().replace("T", " ").substring(0, 19);
@@ -53,13 +49,22 @@ async function main() {
     "minutes"
   );
 
-  const lastMessage = await fetchLatestMessageFromChannel(DISCORD_CHANNEL_ID);
-  console.log(logtime(), "Last message", lastMessage?.content);
-  const txHash = lastMessage?.content.match(
-    /<https?:\/\/.*\/tx\/(0x[a-zA-Z0-9]+)>/
-  )?.[1];
-  if (txHash) {
-    lastTxHash = txHash;
+  if (!DISCORD_CHANNEL_ID) {
+    throw new Error("DISCORD_CHANNEL_ID is not set");
+  }
+
+  const lastMessages = await fetchLatestMessagesFromChannel(DISCORD_CHANNEL_ID);
+  if (!lastMessages) {
+    throw new Error("No messages found in channel");
+  }
+  for (const message of lastMessages) {
+    const txHash = message?.content.match(
+      /<https?:\/\/.*\/tx\/(0x[a-zA-Z0-9]+)>/
+    )?.[1];
+    if (txHash) {
+      lastTxHash = txHash;
+      break;
+    }
   }
   console.log(logtime(), "Last tx hash", lastTxHash);
   fetchOrders();
