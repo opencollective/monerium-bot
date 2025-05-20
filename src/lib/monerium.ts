@@ -67,7 +67,12 @@ export async function getOrders(profileId?: string): Promise<MoneriumOrder[]> {
     },
   });
   const data = await response.json();
-  return data.orders as MoneriumOrder[];
+  const orders = data.orders as MoneriumOrder[];
+  if (!orders) {
+    console.error("monerium: couldn't load orders", data);
+    return [];
+  }
+  return orders;
 }
 
 /**

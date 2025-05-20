@@ -62,6 +62,7 @@ async function main() {
     lastTxHash = txHash;
   }
   console.log(logtime(), "Last tx hash", lastTxHash);
+  fetchOrders();
   setInterval(() => {
     fetchOrders();
   }, INTERVAL);
