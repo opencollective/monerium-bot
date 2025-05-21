@@ -19,7 +19,7 @@ jobs:
           deno-version: v2.3.3
 
       - name: Run tests
-        run: deno test --allow-net --allow-env
+        run: deno test --allow-net --allow-env --allow-read
         env:
           ENV: test
           MONERIUM_CLIENT_ID: xxx
