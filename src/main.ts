@@ -1,8 +1,5 @@
-import { getNewOrders } from "./lib/monerium.ts";
-import {
-  fetchLatestMessagesFromChannel,
-  postToDiscordChannel,
-} from "./lib/discord.ts";
+import monerium from "./lib/monerium.ts";
+import discord from "./lib/discord.ts";
 const chains = JSON.parse(Deno.readTextFileSync("./chains.json"));
 
 const INTERVAL = parseInt(Deno.env.get("INTERVAL") || "600000"); // 10 minutes
@@ -14,8 +11,22 @@ const logtime = () => {
 
 let lastTxHash: string | undefined;
 
+const currencySymbols = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  CAD: "$",
+  AUD: "$",
+};
+
+function formatAmount(amount: string, currency: string): string {
+  return `${
+    currencySymbols[currency.toUpperCase() as keyof typeof currencySymbols]
+  }${amount}`;
+}
+
 const fetchOrders = async () => {
-  const orders = await getNewOrders(lastTxHash);
+  const orders = await monerium.getNewOrders(lastTxHash);
   console.log(logtime(), `Processing ${orders.length} new orders`);
   if (orders.length === 0) {
     return;
@@ -31,12 +42,20 @@ const fetchOrders = async () => {
     const chainExplorer = chains[order.chain].explorer_url;
     let msg = "";
     if (order.kind === "issue") {
-      msg = `Received ${order.amount} ${order.currency} from ${order.counterpart.details.name} (${order.memo}) [[View Transaction](<${chainExplorer}/tx/${order.meta.txHashes[0]}>)]`;
+      msg = `Received ${formatAmount(order.amount, order.currency)} from ${
+        order.counterpart.details.name
+      } (${order.memo}) [[View Transaction](<${chainExplorer}/tx/${
+        order.meta.txHashes[0]
+      }>)]`;
     } else if (order.kind === "redeem") {
-      msg = `Sent ${order.amount} ${order.currency} to ${order.counterpart.details.name} (${order.memo}) [[View Transaction](<${chainExplorer}/tx/${order.meta.txHashes[0]}>)]`;
+      msg = `Sent ${formatAmount(order.amount, order.currency)} to ${
+        order.counterpart.details.name
+      } (${order.memo}) [[View Transaction](<${chainExplorer}/tx/${
+        order.meta.txHashes[0]
+      }>)]`;
     }
     console.log(msg);
-    await postToDiscordChannel(msg);
+    await discord.postToDiscordChannel(msg);
   }
   lastTxHash = orders[0].meta.txHashes[0];
 };
@@ -53,7 +72,9 @@ async function main() {
     throw new Error("DISCORD_CHANNEL_ID is not set");
   }
 
-  const lastMessages = await fetchLatestMessagesFromChannel(DISCORD_CHANNEL_ID);
+  const lastMessages = await discord.fetchLatestMessagesFromChannel(
+    DISCORD_CHANNEL_ID
+  );
   if (!lastMessages) {
     throw new Error("No messages found in channel");
   }
@@ -73,4 +94,8 @@ async function main() {
   }, INTERVAL);
 }
 
-main();
+if (Deno.env.get("ENV") !== "test") {
+  main();
+}
+
+export { fetchOrders };

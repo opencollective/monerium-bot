@@ -31,17 +31,19 @@ const readyPromise = new Promise<void>((resolve) => {
   });
 });
 
-client.login(DISCORD_BOT_TOKEN);
+if (Deno.env.get("ENV") !== "test") {
+  client.login(DISCORD_BOT_TOKEN);
+}
 
 // Expose a function to post a message to the channel
-export async function postToDiscordChannel(message: string) {
+export const postToDiscordChannel = async (message: string) => {
   await readyPromise; // Ensure the client is ready
   const channel = await client.channels.fetch(DISCORD_CHANNEL_ID!);
   if (!channel || !(channel instanceof TextChannel)) {
     throw new Error("Channel not found or is not a text channel");
   }
   await channel.send(message);
-}
+};
 
 // Expose a function to fetch the latest message from a channel
 export async function fetchLatestMessagesFromChannel(
@@ -63,3 +65,9 @@ export async function fetchLatestMessageFromChannel(
   const messages = await fetchLatestMessagesFromChannel(channelId, 1);
   return messages[0] || null;
 }
+
+export default {
+  postToDiscordChannel,
+  fetchLatestMessagesFromChannel,
+  fetchLatestMessageFromChannel,
+};

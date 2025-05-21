@@ -49,8 +49,8 @@ async function getAccessToken() {
 }
 
 const accessToken: string = await getAccessToken();
-if (!accessToken) {
-  throw new Error("monerium:Failed to get access token");
+if (!accessToken && Deno.env.get("ENV") !== "test") {
+  throw new Error("monerium: Failed to get access token");
 }
 
 export async function getOrders(profileId?: string): Promise<MoneriumOrder[]> {
@@ -81,10 +81,10 @@ export async function getOrders(profileId?: string): Promise<MoneriumOrder[]> {
  * @param profileId - The profile id to filter by
  * @returns The new orders
  */
-export async function getNewOrders(
+export const getNewOrders = async (
   sinceTxHash?: string,
   profileId?: string
-): Promise<MoneriumOrder[]> {
+): Promise<MoneriumOrder[]> => {
   const orders = await getOrders(profileId);
   if (!orders) {
     console.error("monerium: couldn't load orders");
@@ -98,7 +98,7 @@ export async function getNewOrders(
     newOrders.push(order as MoneriumOrder);
   }
   return newOrders;
-}
+};
 
 export async function getProfiles() {
   const response = await fetch("https://api.monerium.app/profiles", {
@@ -111,3 +111,9 @@ export async function getProfiles() {
   console.log(data);
   return data.profiles;
 }
+
+export default {
+  getProfiles,
+  getOrders,
+  getNewOrders,
+};
