@@ -48,17 +48,18 @@ async function getAccessToken() {
   return data.access_token;
 }
 
-const accessToken: string = await getAccessToken();
-if (!accessToken && Deno.env.get("ENV") !== "test") {
-  throw new Error("monerium: Failed to get access token");
-}
-
 export async function getOrders(profileId?: string): Promise<MoneriumOrder[]> {
   const params = [
     ["profile_id", profileId || ""],
     ["state", "processed"],
   ];
   const queryParams = new URLSearchParams(params);
+
+  const accessToken: string = await getAccessToken();
+  if (!accessToken && Deno.env.get("ENV") !== "test") {
+    throw new Error("monerium: Failed to get access token");
+  }
+
   const apiCall = `https://api.monerium.app/orders?${queryParams}`;
   const response = await fetch(apiCall, {
     headers: {
@@ -101,6 +102,7 @@ export const getNewOrders = async (
 };
 
 export async function getProfiles() {
+  const accessToken: string = await getAccessToken();
   const response = await fetch("https://api.monerium.app/profiles", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
