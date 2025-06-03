@@ -27,7 +27,10 @@ function formatAmount(amount: string, currency: string): string {
 
 const fetchOrders = async () => {
   const orders = await monerium.getNewOrders(lastTxHash);
-  console.log(logtime(), `Processing ${orders.length} new orders`);
+  console.log(
+    logtime(),
+    `Processing ${orders.length} new orders since ${lastTxHash}`
+  );
   if (orders.length === 0) {
     return;
   }
@@ -57,6 +60,7 @@ const fetchOrders = async () => {
     console.log(msg);
     await discord.postToDiscordChannel(msg);
   }
+  console.log(logtime(), "Updating lastTxHash to", orders[0].meta.txHashes);
   lastTxHash = orders[0].meta.txHashes[0];
 };
 
@@ -87,7 +91,7 @@ async function main() {
       break;
     }
   }
-  console.log(logtime(), "Last tx hash", lastTxHash);
+  console.log(logtime(), "Last tx hash from last discord message:", lastTxHash);
   fetchOrders();
   setInterval(() => {
     fetchOrders();
