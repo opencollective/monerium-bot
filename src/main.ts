@@ -4,6 +4,10 @@ const chains = JSON.parse(Deno.readTextFileSync("./chains.json"));
 
 const INTERVAL = parseInt(Deno.env.get("INTERVAL") || "600000"); // 10 minutes
 const DISCORD_CHANNEL_ID = Deno.env.get("DISCORD_CHANNEL_ID");
+const PORT = Number(Deno.env.get("PORT") ?? 3000);
+
+const startTimestamp = new Date();
+let txsProcessed = 0;
 
 const logtime = () => {
   return new Date().toISOString().replace("T", " ").substring(0, 19);
@@ -59,6 +63,7 @@ const fetchOrders = async () => {
     }
     console.log(msg);
     await discord.postToDiscordChannel(msg);
+    txsProcessed++;
   }
   console.log(logtime(), "Updating lastTxHash to", orders[0].meta.txHashes);
   lastTxHash = orders[0].meta.txHashes[0];
@@ -98,8 +103,41 @@ async function main() {
   }, INTERVAL);
 }
 
+export const handler = (req: Request) => {
+  const url = new URL(req.url);
+
+  if (url.pathname === "/" && req.method === "GET") {
+    return new Response(
+      `<html>
+        <body>
+          Server listening on port ${PORT} since ${new Date(
+        startTimestamp
+      ).toISOString()}<br />
+          Connected to Discord Channel Id: ${DISCORD_CHANNEL_ID}<br />
+          Number of transactions processed: ${txsProcessed}
+        </body>
+      </html>`,
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "text/html",
+        },
+      }
+    );
+  }
+  return new Response("Not Found", { status: 404 });
+};
+
 if (Deno.env.get("ENV") !== "test") {
   main();
+
+  Deno.serve({ port: PORT }, handler);
+
+  console.log(
+    `Server listening on port ${PORT} since ${new Date(
+      startTimestamp
+    ).toISOString()} for health check`
+  );
 }
 
 export { fetchOrders };
