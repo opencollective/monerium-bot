@@ -1,6 +1,10 @@
 # Use the official Deno image
 FROM denoland/deno:alpine-2.3.1
 
+# Install curl
+RUN apk add --no-cache curl
+
+# Create app directory
 RUN mkdir -p /app
 
 # Set working directory
