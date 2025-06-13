@@ -18,7 +18,7 @@ or to avoid the interactive permissions granting:
 
 
 ```sh
-deno run \
+$> deno run \
   --allow-read=./chains.json \
   --allow-net=gateway.discord.gg,gateway-us-east1-d.discord.gg,discord.com,api.monerium.app \
   --allow-env \
@@ -31,5 +31,11 @@ deno run \
 or like a cowboy:
 
 ```sh
-deno run -A --env-file=.env src/main.ts
+$> deno run -A --env-file=.env src/main.ts
+```
+
+To debug, just run `deno task dryrun` to avoid posting to Discord. You can pass an optional `LAST_TX_HASH` env variable to simulate starting from a different position.
+
+```sh
+$> LAST_TX_HASH=0xa6736cf7dacd7ac90044f68a2b662ee5103daaa07c6289b91afbfa3940a17f48 deno task dryrun
 ```

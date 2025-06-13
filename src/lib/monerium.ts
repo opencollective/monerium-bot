@@ -91,6 +91,17 @@ export const getNewOrders = async (
     console.error("monerium: couldn't load orders");
     return [];
   }
+  if (Deno.env.get("ENV") === "dryrun") {
+    orders.slice(0, 3).map((order, index) => {
+      console.log(
+        ">>> Processing order:",
+        index,
+        order.meta.processedAt,
+        order.amount,
+        order.meta.txHashes[0]
+      );
+    });
+  }
   const newOrders: MoneriumOrder[] = [];
   for (const order of orders) {
     if (sinceTxHash && order.meta.txHashes[0] === sinceTxHash) {

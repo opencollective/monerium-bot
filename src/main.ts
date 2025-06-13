@@ -65,7 +65,7 @@ const fetchOrders = async () => {
     await discord.postToDiscordChannel(msg);
     txsProcessed++;
   }
-  console.log(logtime(), "Updating lastTxHash to", orders[0].meta.txHashes);
+  console.log(logtime(), "Updating lastTxHash to", orders[0].meta.txHashes[0]);
   lastTxHash = orders[0].meta.txHashes[0];
 };
 
@@ -81,19 +81,22 @@ async function main() {
     throw new Error("DISCORD_CHANNEL_ID is not set");
   }
 
-  const lastMessages = await discord.fetchLatestMessagesFromChannel(
-    DISCORD_CHANNEL_ID
-  );
-  if (!lastMessages) {
-    throw new Error("No messages found in channel");
-  }
-  for (const message of lastMessages) {
-    const txHash = message?.content.match(
-      /<https?:\/\/.*\/tx\/(0x[a-zA-Z0-9]+)>/
-    )?.[1];
-    if (txHash) {
-      lastTxHash = txHash;
-      break;
+  if (Deno.env.get("LAST_TX_HASH")) {
+    lastTxHash = Deno.env.get("LAST_TX_HASH");
+  } else {
+    const lastMessages = await discord.fetchLatestMessagesFromChannel(
+      DISCORD_CHANNEL_ID
+    );
+    if (lastMessages) {
+      for (const message of lastMessages) {
+        const txHash = message?.content.match(
+          /<https?:\/\/.*\/tx\/(0x[a-zA-Z0-9]+)>/
+        )?.[1];
+        if (txHash) {
+          lastTxHash = txHash;
+          break;
+        }
+      }
     }
   }
   console.log(logtime(), "Last tx hash from last discord message:", lastTxHash);
