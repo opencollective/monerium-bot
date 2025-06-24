@@ -109,7 +109,7 @@ export const getNewOrders = async (
     }
     newOrders.push(order as MoneriumOrder);
   }
-  return newOrders.reverse();
+  return newOrders;
 };
 
 export async function getProfiles() {
