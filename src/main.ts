@@ -39,12 +39,13 @@ const fetchOrders = async () => {
   if (orders.length === 0) {
     return;
   }
+  orders.reverse();
   for (const order of orders) {
     const processedAt = new Date(order.meta.processedAt);
     const now = new Date();
     const diff = now.getTime() - processedAt.getTime();
     const diffHours = diff / (1000 * 60 * 60);
-    if (diffHours > 96) {
+    if (diffHours > 24) {
       return;
     }
     if (postedTxHashes.includes(order.meta.txHashes[0])) {
