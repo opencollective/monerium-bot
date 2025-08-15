@@ -45,7 +45,7 @@ const fetchOrders = async () => {
     const now = new Date();
     const diff = now.getTime() - processedAt.getTime();
     const diffHours = diff / (1000 * 60 * 60);
-    if (diffHours > 24) {
+    if (diffHours > 96) {
       return;
     }
     if (postedTxHashes.includes(order.meta.txHashes[0])) {
