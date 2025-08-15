@@ -52,22 +52,58 @@ export const postToDiscordChannel = async (message: string) => {
 // Expose a function to fetch the latest message from a channel
 export async function fetchLatestMessagesFromChannel(
   channelId: string,
+  sinceMessageId?: string,
   limit: number = 10
 ): Promise<Message[]> {
+  await readyPromise; // Ensure the client is ready
+  console.log(">>> fetching messages from channel", channelId);
+  const channel = await client.channels.fetch(channelId);
+  if (!channel || !(channel instanceof TextChannel)) {
+    throw new Error("Channel not found or is not a text channel");
+  }
+  console.log(
+    ">>> fetching messages since message ID",
+    sinceMessageId,
+    "limit",
+    limit
+  );
+  const messages = await channel.messages.fetch({ limit });
+  const messagesArray = Array.from(messages.values()) || [];
+  if (sinceMessageId) {
+    return messagesArray.filter((message) => message.id >= sinceMessageId);
+  }
+  return messagesArray;
+}
+export async function fetchLatestMessageFromChannel(
+  channelId: string
+): Promise<Message | null> {
+  const messages = await fetchLatestMessagesFromChannel(
+    channelId,
+    undefined,
+    1
+  );
+  return messages[0] || null;
+}
+
+export async function removeMessagesFromChannel(
+  channelId: string,
+  messageIds: string[]
+) {
   await readyPromise; // Ensure the client is ready
   const channel = await client.channels.fetch(channelId);
   if (!channel || !(channel instanceof TextChannel)) {
     throw new Error("Channel not found or is not a text channel");
   }
-  const messages = await channel.messages.fetch({ limit });
-  return Array.from(messages.values()) || [];
-}
-
-export async function fetchLatestMessageFromChannel(
-  channelId: string
-): Promise<Message | null> {
-  const messages = await fetchLatestMessagesFromChannel(channelId, 1);
-  return messages[0] || null;
+  try {
+    await channel.bulkDelete(messageIds);
+  } catch (error) {
+    if (error.code === 50013) {
+      throw new Error(
+        "❌ error removing messages: You do not have permission to delete messages in this channel"
+      );
+    }
+    throw error;
+  }
 }
 
 export default {

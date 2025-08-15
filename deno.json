@@ -2,6 +2,7 @@
   "tasks": {
     "dev": "deno run --watch main.ts",
     "dryrun": "ENV=dryrun PORT=8081 deno run --env-file=.env --allow-read=./chains.json --allow-net=api.monerium.app,discord.com,gateway.discord.gg,gateway-us-east1-a.discord.gg,gateway-us-east1-b.discord.gg,gateway-us-east1-c.discord.gg,gateway-us-east1-d.discord.gg,gateway-us-east1-e.discord.gg,0.0.0.0 --no-prompt --allow-env  src/main.ts",
+    "remove-messages": "deno run --env-file=.env --allow-read=./chains.json --allow-net=api.monerium.app,discord.com,gateway.discord.gg,gateway-us-east1-a.discord.gg,gateway-us-east1-b.discord.gg,gateway-us-east1-c.discord.gg,gateway-us-east1-d.discord.gg,gateway-us-east1-e.discord.gg,0.0.0.0 --no-prompt --allow-env  src/remove-messages.ts",
     "start": "deno run --env-file=.env --allow-read=./chains.json --allow-net=api.monerium.app,discord.com,gateway.discord.gg,gateway-us-east1-a.discord.gg,gateway-us-east1-b.discord.gg,gateway-us-east1-c.discord.gg,gateway-us-east1-d.discord.gg,gateway-us-east1-e.discord.gg,0.0.0.0 --no-prompt --allow-env  src/main.ts"
   },
   "imports": {
