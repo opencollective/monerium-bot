@@ -14,6 +14,7 @@ const logtime = () => {
 };
 
 let lastTxHash: string | undefined;
+const postedTxHashes: string[] = [];
 
 const currencySymbols = {
   USD: "$",
@@ -43,8 +44,16 @@ const fetchOrders = async () => {
     const now = new Date();
     const diff = now.getTime() - processedAt.getTime();
     const diffHours = diff / (1000 * 60 * 60);
-    if (diffHours > 24) {
+    if (diffHours > 96) {
       return;
+    }
+    if (postedTxHashes.includes(order.meta.txHashes[0])) {
+      console.log(
+        logtime(),
+        "Skipping duplicate transaction",
+        order.meta.txHashes[0]
+      );
+      continue;
     }
     const chainExplorer = chains[order.chain].explorer_url;
     let msg = "";
@@ -61,8 +70,9 @@ const fetchOrders = async () => {
         order.meta.txHashes[0]
       }>)]`;
     }
-    console.log(msg);
+    // console.log(msg);
     await discord.postToDiscordChannel(msg);
+    postedTxHashes.push(order.meta.txHashes[0]);
     txsProcessed++;
   }
   console.log(logtime(), "Updating lastTxHash to", orders[0].meta.txHashes[0]);
@@ -85,7 +95,9 @@ async function main() {
     lastTxHash = Deno.env.get("LAST_TX_HASH");
   } else {
     const lastMessages = await discord.fetchLatestMessagesFromChannel(
-      DISCORD_CHANNEL_ID
+      DISCORD_CHANNEL_ID,
+      undefined,
+      100
     );
     if (lastMessages) {
       for (const message of lastMessages) {
@@ -93,8 +105,8 @@ async function main() {
           /<https?:\/\/.*\/tx\/(0x[a-zA-Z0-9]+)>/
         )?.[1];
         if (txHash) {
+          postedTxHashes.push(txHash);
           lastTxHash = txHash;
-          break;
         }
       }
     }
