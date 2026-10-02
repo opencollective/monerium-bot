@@ -45,7 +45,7 @@ async function main() {
   try {
     await removeMessagesFromChannel(channelId, messageIds);
   } catch (error) {
-    console.error(error.message);
+    console.error((error as Error).message);
     Deno.exit(1);
   }
 

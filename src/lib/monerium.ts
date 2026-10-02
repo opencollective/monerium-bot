@@ -45,6 +45,9 @@ async function getAccessToken() {
     }),
   });
   const data = await response.json();
+  if (!response.ok || !data.access_token) {
+    console.error("monerium: failed to get access token", response.status, data);
+  }
   return data.access_token;
 }
 
@@ -70,7 +73,7 @@ export async function getOrders(profileId?: string): Promise<MoneriumOrder[]> {
   const data = await response.json();
   const orders = data.orders as MoneriumOrder[];
   if (!orders) {
-    console.error("monerium: couldn't load orders", data);
+    console.error("monerium: couldn't load orders", response.status, data);
     return [];
   }
   return orders;

@@ -43,7 +43,9 @@ const fetchOrders = async () => {
   console.log(logtime(), `Processing ${orders.length} new orders (${postedTxHashes.size} already posted)`);
   for (const order of orders) {
     const txHash = order.meta.txHashes[0];
-    const link = `${chains[order.chain]?.explorer_url ?? "https://blockscan.com"}/tx/${txHash}`;
+    const explorer = chains[order.chain]?.explorer_url;
+    if (!explorer) console.warn(logtime(), `Unknown chain "${order.chain}" (not in chains.json), linking to blockscan.com`);
+    const link = `${explorer ?? "https://blockscan.com"}/tx/${txHash}`;
     const note = processedNote(new Date(order.meta.processedAt), now);
     let msg = "";
     if (order.kind === "issue") {
@@ -122,7 +124,10 @@ export const handler = (req: Request) => {
 };
 
 if (Deno.env.get("ENV") !== "test") {
-  main();
+  main().catch((error) => {
+    console.error(logtime(), "Fatal error during startup:", error);
+    Deno.exit(1);
+  });
 
   Deno.serve({ port: PORT }, handler);
 

@@ -58,3 +58,19 @@ Deno.test("fetchOrders posts new orders once, noting when a payment was processe
     post.restore();
   }
 });
+
+Deno.test("an order on a chain missing from chains.json is still posted, linking to blockscan.com", async () => {
+  mainModule.postedTxHashes.clear();
+  const o = order({ kind: "issue", amount: "5", placed: new Date(Date.now() - 60e3).toISOString(), processed: new Date(Date.now() - 30e3).toISOString(), tx: "0xccc", name: "Bea" });
+  (o as unknown as { chain: string }).chain = "some-new-chain";
+  const getOrders = stub(monerium, "getOrders", () => Promise.resolve([o]));
+  const post = stub(discord, "postToDiscordChannel", () => Promise.resolve());
+  try {
+    await mainModule.fetchOrders();
+    assertSpyCalls(post, 1);
+    assertEquals(post.calls[0].args[0], "Received €5 from Bea (memo) [[View Transaction](<https://blockscan.com/tx/0xccc>)]");
+  } finally {
+    getOrders.restore();
+    post.restore();
+  }
+});
