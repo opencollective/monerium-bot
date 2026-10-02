@@ -1,4 +1,4 @@
-type MoneriumOrder = {
+export type MoneriumOrder = {
   id: string;
   kind: string;
   profile: string;
@@ -126,7 +126,32 @@ export async function getProfiles() {
 }
 
 export default {
+  selectOrdersToPost,
   getProfiles,
   getOrders,
   getNewOrders,
 };
+
+/**
+ * Orders to post: processed in the last `windowHours`, with a tx hash we have not posted
+ * yet, oldest processing first.
+ *
+ * This replaces "everything listed above the last posted tx hash". Monerium lists orders
+ * by when they were placed, but outgoing SEPA payments are processed hours later: a
+ * payment placed at 06:39 and processed at 08:43 was listed below an incoming payment
+ * placed and processed at 06:50, already posted, so it was never seen as new (the rent
+ * on 2026-10-01). Deciding by "already posted?" is immune to the list order.
+ */
+export function selectOrdersToPost(
+  orders: MoneriumOrder[],
+  posted: Set<string>,
+  now = new Date(),
+  windowHours = 96,
+): MoneriumOrder[] {
+  const since = now.getTime() - windowHours * 60 * 60 * 1000;
+  return orders
+    .filter((o) => o.state === "processed" && o.meta?.txHashes?.[0] && o.meta.processedAt)
+    .filter((o) => new Date(o.meta.processedAt).getTime() >= since)
+    .filter((o) => !posted.has(o.meta.txHashes[0].toLowerCase()))
+    .sort((a, b) => new Date(a.meta.processedAt).getTime() - new Date(b.meta.processedAt).getTime());
+}
