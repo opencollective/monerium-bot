@@ -97,7 +97,7 @@ export async function removeMessagesFromChannel(
   try {
     await channel.bulkDelete(messageIds);
   } catch (error) {
-    if (error.code === 50013) {
+    if ((error as { code?: number }).code === 50013) {
       throw new Error(
         "❌ error removing messages: You do not have permission to delete messages in this channel"
       );

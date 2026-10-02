@@ -13,8 +13,9 @@ const logtime = () => {
   return new Date().toISOString().replace("T", " ").substring(0, 19);
 };
 
-let lastTxHash: string | undefined;
-const postedTxHashes: string[] = [];
+/** Lower-cased tx hashes already in the channel (seeded from its recent messages at startup). */
+const postedTxHashes = new Set<string>();
+const TX_LINK_RE = /<https?:\/\/[^\s>]*\/tx\/(0x[a-fA-F0-9]+)>/g;
 
 const currencySymbols = {
   USD: "$",
@@ -30,55 +31,51 @@ function formatAmount(amount: string, currency: string): string {
   }${amount}`;
 }
 
+function processedNote(processedAt: Date, now: Date): string {
+  if (now.getTime() - processedAt.getTime() < 60 * 60 * 1000) return "";
+  const when = processedAt.toLocaleString("en-GB", { timeZone: "Europe/Brussels", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  return ` · processed ${when}`;
+}
+
 const fetchOrders = async () => {
-  const orders = await monerium.getNewOrders(lastTxHash);
-  console.log(
-    logtime(),
-    `Processing ${orders.length} new orders since ${lastTxHash}`
-  );
-  if (orders.length === 0) {
-    return;
-  }
-  orders.reverse();
+  const now = new Date();
+  const orders = monerium.selectOrdersToPost(await monerium.getOrders(), postedTxHashes, now);
+  console.log(logtime(), `Processing ${orders.length} new orders (${postedTxHashes.size} already posted)`);
   for (const order of orders) {
-    const processedAt = new Date(order.meta.processedAt);
-    const now = new Date();
-    const diff = now.getTime() - processedAt.getTime();
-    const diffHours = diff / (1000 * 60 * 60);
-    if (diffHours > 96) {
-      continue;
-    }
-    if (postedTxHashes.includes(order.meta.txHashes[0])) {
-      console.log(
-        logtime(),
-        "Skipping duplicate transaction",
-        order.meta.txHashes[0]
-      );
-      continue;
-    }
-    const chainExplorer = chains[order.chain].explorer_url;
+    const txHash = order.meta.txHashes[0];
+    const link = `${chains[order.chain]?.explorer_url ?? "https://blockscan.com"}/tx/${txHash}`;
+    const note = processedNote(new Date(order.meta.processedAt), now);
     let msg = "";
     if (order.kind === "issue") {
-      msg = `Received ${formatAmount(order.amount, order.currency)} from ${
-        order.counterpart.details.name
-      } (${order.memo}) [[View Transaction](<${chainExplorer}/tx/${
-        order.meta.txHashes[0]
-      }>)]`;
+      msg = `Received ${formatAmount(order.amount, order.currency)} from ${order.counterpart.details.name} (${order.memo})${note} [[View Transaction](<${link}>)]`;
     } else if (order.kind === "redeem") {
-      msg = `Sent ${formatAmount(order.amount, order.currency)} to ${
-        order.counterpart.details.name
-      } (${order.memo}) [[View Transaction](<${chainExplorer}/tx/${
-        order.meta.txHashes[0]
-      }>)]`;
+      msg = `Sent ${formatAmount(order.amount, order.currency)} to ${order.counterpart.details.name} (${order.memo})${note} [[View Transaction](<${link}>)]`;
+    } else {
+      console.warn(logtime(), "Skipping order of unknown kind", order.kind, order.id);
+      continue;
     }
-    // console.log(msg);
     await discord.postToDiscordChannel(msg);
-    postedTxHashes.push(order.meta.txHashes[0]);
+    postedTxHashes.add(txHash.toLowerCase());
     txsProcessed++;
   }
-  console.log(logtime(), "Updating lastTxHash to", orders[0].meta.txHashes[0]);
-  lastTxHash = orders[0].meta.txHashes[0];
 };
+
+// A failed poll (Monerium or Discord outage, unexpected payload) must never kill the process.
+const safeFetchOrders = async () => {
+  try {
+    await fetchOrders();
+  } catch (error) {
+    console.error(logtime(), "Error while fetching orders:", error);
+  }
+};
+
+/** Remember every tx already linked in the channel's recent messages. */
+export function rememberPostedFromMessages(contents: string[]): number {
+  for (const content of contents) {
+    for (const m of content.matchAll(TX_LINK_RE)) postedTxHashes.add(m[1].toLowerCase());
+  }
+  return postedTxHashes.size;
+}
 
 async function main() {
   console.log(
@@ -92,31 +89,11 @@ async function main() {
     throw new Error("DISCORD_CHANNEL_ID is not set");
   }
 
-  if (Deno.env.get("LAST_TX_HASH")) {
-    lastTxHash = Deno.env.get("LAST_TX_HASH");
-  } else {
-    const lastMessages = await discord.fetchLatestMessagesFromChannel(
-      DISCORD_CHANNEL_ID,
-      undefined,
-      100
-    );
-    if (lastMessages) {
-      for (const message of lastMessages) {
-        const txHash = message?.content.match(
-          /<https?:\/\/.*\/tx\/(0x[a-zA-Z0-9]+)>/
-        )?.[1];
-        if (txHash) {
-          postedTxHashes.push(txHash);
-          lastTxHash = txHash;
-        }
-      }
-    }
-  }
-  console.log(logtime(), "Last tx hash from last discord message:", lastTxHash);
-  fetchOrders();
-  setInterval(() => {
-    fetchOrders();
-  }, INTERVAL);
+  const lastMessages = await discord.fetchLatestMessagesFromChannel(DISCORD_CHANNEL_ID, undefined, 100);
+  const known = rememberPostedFromMessages((lastMessages ?? []).map((m: { content?: string }) => m?.content ?? ""));
+  console.log(logtime(), `Found ${known} tx links in the channel's last 100 messages`);
+  await safeFetchOrders();
+  setInterval(safeFetchOrders, INTERVAL);
 }
 
 export const handler = (req: Request) => {
@@ -156,4 +133,4 @@ if (Deno.env.get("ENV") !== "test") {
   );
 }
 
-export { fetchOrders };
+export { fetchOrders, postedTxHashes };
