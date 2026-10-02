@@ -22,10 +22,6 @@ jobs:
         run: deno test --allow-net --allow-env --allow-read
         env:
           ENV: test
-          DISCORD_BOT_TOKEN: dummy
-          DISCORD_CHANNEL_ID: dummy
-        env:
-          ENV: test
           MONERIUM_CLIENT_ID: xxx
           MONERIUM_CLIENT_SECRET: xxx
           DISCORD_BOT_TOKEN: xxx
